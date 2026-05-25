@@ -28,7 +28,7 @@ st.title("🌐 Multi-Source Text Data Mining Analyzer")
 st.markdown("This system executes advanced text mining analytics from academic web sources, PDF documents, and custom inputs.")
 
 # ----------------------------------------------------------------
-# 텍스트 입력 상자 폰트 크기, 플레이스홀더, 우측 하단 단축키 안내문구 초강력 시인성 강화 CSS
+# [해결 완료] 위젯 지침 최상위 노드 강제 제어 및 시인성 극대화 CSS
 # ----------------------------------------------------------------
 st.markdown(
     """
@@ -48,16 +48,15 @@ st.markdown(
         opacity: 1 !important;
     }
     
-    /* 3. 오른쪽 아래 'Press Ctrl+Enter to apply' 안내문구 크기 강제 확대 및 색상 고정 */
-    /* 여러 렌더링 환경에 대응하기 위해 다중 선택자 구조로 강제 주입함 */
-    .stTextArea div[data-testid="stWidgetInstructions"] small,
-    .stTextArea [data-testid="stWidgetInstructions"] p,
-    .stTextArea [data-testid="stWidgetInstructions"] {
-        font-size: 16px !important;       /* 글자 크기를 16px로 대폭 확대 */
-        color: #000000 !important;       /* 흐릿한 회색을 순수 검은색으로 강제 변경 */
-        font-weight: 700 !important;     /* 글자 두께를 아주 두껍게 변경 */
-        display: inline-block !important;
-        margin-top: 4px !important;
+    /* 3. 오른쪽 아래 'Press Ctrl+Enter to apply' 지침 문구 완벽 해결 */
+    /* 클래스 종속성을 완전히 깨고 Streamlit의 특수 데이터 속성을 직접 타깃팅하여 무조건 변경함 */
+    div[data-testid="stWidgetInstructions"], 
+    div[data-testid="stWidgetInstructions"] span, 
+    div[data-testid="stWidgetInstructions"] small {
+        font-size: 16px !important;        /* 기존 대비 글자 크기 대폭 확대 */
+        color: #000000 !important;        /* 완벽한 순수 검은색으로 선명도 강화 */
+        font-weight: 800 !important;        /* 글씨 두께를 가장 두껍게 고정 */
+        opacity: 1 !important;             /* 브라우저 자체의 반투명 효과 강제 해제 */
     }
     </style>
     """,
@@ -121,7 +120,6 @@ elif analysis_mode == "PDF Document Analysis":
             filtered_words = analyzer.process_korean_text(raw_text)
             if filtered_words:
                 word_counts = Counter(filtered_words)
-                word_df = pd.read_csv(csv_file) # 변수 초기화용 구조 유지
                 word_df = pd.DataFrame(word_counts.most_common(10), columns=["Word", "Count"])
                 st.success(f"Successfully processed PDF file ({len(doc)} pages extracted).")
             else:
@@ -150,13 +148,11 @@ if word_df is not None and not word_df.empty:
     
     with col1:
         st.subheader("📊 Top 10 Core Keyword Frequencies")
-        # 가로형 막대 차트 연동을 위해 인덱스 세팅 후 바 플롯 표출
         st.bar_chart(data=word_df.set_index("Word"))
         
     with col2:
         st.subheader("📝 Textual Analysis Word Cloud")
         if filtered_words:
-            # 안전한 절대 경로 시스템 폰트가 담긴 font_name 변수 주입
             wordcloud = analyzer.generate_wordcloud_obj(filtered_words, font_path=font_name)
             fig, ax = plt.subplots(figsize=(10, 6))
             ax.imshow(wordcloud, interpolation="bilinear")
@@ -165,7 +161,6 @@ if word_df is not None and not word_df.empty:
         else:
             st.info("No words available to generate cloud visual.")
             
-    # arXiv 웹 스크래핑 모드일 때만 하단에 수집된 CSV 원본 테이블 표출
     if show_raw_df:
         st.markdown("---")
         st.subheader("🔍 Scraped Raw Metadata Dataframe")
