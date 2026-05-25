@@ -16,37 +16,45 @@ def get_kiwi():
 
 def process_korean_text(text):
     """
-    입력된 텍스트에서 한글 명사만 정밀하게 추출하고 불용어를 제거하는 함수
+    입력된 텍스트에서 한글 명사 및 영문 핵심 키워드를 추출하고 불용어를 제거하는 함수
     """
     if not text or not isinstance(text, str):
         return []
     
     kiwi = get_kiwi()
     
-    # 특수문자 정제
-    clean_text = re.sub(r'[^가-힣a-zA-Z0-9\s]', '', text)
+    # 특수문자 정제 (한글, 영문, 공백 유지)
+    clean_text = re.sub(r'[^가-힣a-zA-Z\s]', '', text)
     
     # Kiwi 토큰화 진행
     tokens = kiwi.tokenize(clean_text)
     
-    # NNG(일반명사), NNP(고유명사)만 명확하게 추출 (조사 '를', '의' 등 원천 차단)
-    nouns = [t.form for t in tokens if t.tag in ['NNG', 'NNP']]
+    # NNG(일반명사), NNP(고유명사) 외에 영문 키워드 처리를 위해 SL(외국어) 태그 추가 반영
+    allowed_tags = ['NNG', 'NNP', 'SL']
     
-    # 교회 주보 및 텍스트 데이터 분석용 맞춤형 불용어 사전 세분화
+    # 해당 태그에 속하는 단어만 추출하되, 영어는 분석 일관성을 위해 소문자로 통일
+    raw_words = []
+    for t in tokens:
+        if t.tag in allowed_tags:
+            word = t.form.lower() if t.tag == 'SL' else t.form
+            raw_words.append(word)
+    
+    # 한영 통합 맞춤형 불용어 사전 세분화
     stop_words = [
         '그것', '이것', '저것', '때문', '위해', '대한', '통해', '관한',
         '다함께', '우리', '우리의', '무리를', '함께', '모든', '통하여', 
-        '대하여', '있습니다', '아래', '이상', '이하', '내용', '구분'
+        '대하여', '있습니다', '아래', '이상', '이하', '내용', '구분',
+        'the', 'and', 'of', 'to', 'in', 'is', 'for', 'that', 'with', 'on', 'as', 'by', 'an', 'this', 'we'
     ]
     
-    # 2글자 이상이면서 불용어 사전에 포함되지 않은 단어만 필터링
-    filtered_nouns = [word for word in nouns if len(word) > 1 and word not in stop_words]
+    # 2글자 이상이면서 불용어 사전에 포함되지 않은 단어만 최종 필터링
+    filtered_nouns = [word for word in raw_words if len(word) > 1 and word not in stop_words]
     
     return filtered_nouns
 
 def process_dataframe_mining(df):
     """
-    데이터프레임 기반 텍스트 데이터 파싱 함수
+    데이터프레임 기반 텍스트 데이터 파싱 함수 (Abstract 또는 title 우선 매핑)
     """
     if 'Abstract' in df.columns:
         all_text = " ".join(df['Abstract'].fillna("").astype(str).tolist())
@@ -99,7 +107,7 @@ def generate_wordcloud_obj(text_list, font_path=None):
 
     text_content = " ".join(text_list)
     
-    # 한글 전용 워드클라우드 객체 선언
+    # 한글 및 영문 공용 워드클라우드 객체 선언
     wc = WordCloud(
         font_path=font_path,
         width=800,
