@@ -26,6 +26,32 @@ else:
 st.set_page_config(page_title="Web Data Scraping & Analysis System", layout="wide")
 st.title("🌐 Multi-Source Text Data Mining Analyzer")
 st.markdown("This system executes advanced text mining analytics from academic web sources, PDF documents, and custom inputs.")
+
+# ----------------------------------------------------------------
+# [추가] 텍스트 입력 상자(st.text_area) 폰트 크기 및 플레이스홀더 선명도 강화 CSS
+# ----------------------------------------------------------------
+st.markdown(
+    """
+    <style>
+    /* 1. 입력 상자 안에 사용자가 실제 입력하는 글자의 크기 및 색상 조정 */
+    .stTextArea textarea {
+        font-size: 18px !important;
+        color: #111111 !important;
+        line-height: 1.6 !important;
+    }
+    
+    /* 2. 입력 상자 내부의 안내 문구(Placeholder) 글자 크기 확대 및 선명도(진하게) 강화 */
+    .stTextArea textarea::placeholder {
+        font-size: 16px !important;
+        color: #444444 !important; /* 흐릿한 회색에서 명확하게 식별 가능한 진한 색상으로 수정 */
+        font-weight: 500 !important;
+        opacity: 1 !important; /* 브라우저 자체의 투명도 마스킹 해제 */
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 st.markdown("---")
 
 # ----------------------------------------------------------------
@@ -88,7 +114,7 @@ elif analysis_mode == "PDF Document Analysis":
             else:
                 st.warning("No significant dynamic words could be extracted from the PDF file.")
 
-# [모드 3] 텍스트 상자 입력 분석 모드
+# [모드 3] 텍스트 상자 입력 분석 모드 (디자인 개선 레이어 바인딩)
 elif analysis_mode == "Direct Text Input":
     st.subheader("📝 Text Container Data Mining")
     user_input = st.text_area("Paste or enter your target paragraph here", height=250,
