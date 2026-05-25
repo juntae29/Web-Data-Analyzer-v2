@@ -26,7 +26,37 @@ else:
 st.set_page_config(page_title="Web Data Scraping & Analysis System", layout="wide")
 st.title("🌐 Multi-Source Text Data Mining Analyzer")
 st.markdown("This system executes advanced text mining analytics from academic web sources, PDF documents, and custom inputs.")
-
+# ----------------------------------------------------------------
+# 텍스트 입력 상자 폰트 크기, 플레이스홀더, 단축키 안내문구 시인성 강화 CSS
+# ----------------------------------------------------------------
+st.markdown(
+    """
+    <style>
+    /* 1. 입력 상자 안에 실제 작성되는 글자 크기 및 색상 조정 */
+    .stTextArea textarea {
+        font-size: 18px !important;
+        color: #111111 !important;
+        line-height: 1.6 !important;
+    }
+    
+    /* 2. 입력 상자 내부의 플레이스홀더(안내 문구) 글자 크기 및 선명도 강화 */
+    .stTextArea textarea::placeholder {
+        font-size: 16px !important;
+        color: #444444 !important;
+        font-weight: 500 !important;
+        opacity: 1 !important;
+    }
+    
+    /* 3. [추가] 오른쪽 아래 'Press Ctrl+Enter to apply' 안내문구 크기 및 색상 조정 */
+    .stTextArea div[data-testid="stWidgetInstructions"] {
+        font-size: 14px !important;
+        color: #222222 !important; /* 기존 회색에서 명확하고 진한 색상으로 변경 */
+        font-weight: bold !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 # ----------------------------------------------------------------
 # [추가] 텍스트 입력 상자(st.text_area) 폰트 크기 및 플레이스홀더 선명도 강화 CSS
 # ----------------------------------------------------------------
