@@ -28,7 +28,7 @@ st.title("🌐 Multi-Source Text Data Mining Analyzer")
 st.markdown("This system executes advanced text mining analytics from academic web sources, PDF documents, and custom inputs.")
 
 # ----------------------------------------------------------------
-# 텍스트 입력 상자 폰트 크기, 플레이스홀더, 우측 하단 단축키 안내문구 시인성 강화 CSS
+# 텍스트 입력 상자 폰트 크기, 플레이스홀더, 우측 하단 단축키 안내문구 초강력 시인성 강화 CSS
 # ----------------------------------------------------------------
 st.markdown(
     """
@@ -48,11 +48,16 @@ st.markdown(
         opacity: 1 !important;
     }
     
-    /* 3. 오른쪽 아래 'Press Ctrl+Enter to apply' 안내문구 크기 확대 및 선명도 강화 */
-    .stTextArea div[data-testid="stWidgetInstructions"] {
-        font-size: 15px !important;
-        color: #111111 !important; /* 흐릿한 회색에서 명확하게 식별 가능한 진한 검은색 계열로 변경 */
-        font-weight: bold !important;
+    /* 3. 오른쪽 아래 'Press Ctrl+Enter to apply' 안내문구 크기 강제 확대 및 색상 고정 */
+    /* 여러 렌더링 환경에 대응하기 위해 다중 선택자 구조로 강제 주입함 */
+    .stTextArea div[data-testid="stWidgetInstructions"] small,
+    .stTextArea [data-testid="stWidgetInstructions"] p,
+    .stTextArea [data-testid="stWidgetInstructions"] {
+        font-size: 16px !important;       /* 글자 크기를 16px로 대폭 확대 */
+        color: #000000 !important;       /* 흐릿한 회색을 순수 검은색으로 강제 변경 */
+        font-weight: 700 !important;     /* 글자 두께를 아주 두껍게 변경 */
+        display: inline-block !important;
+        margin-top: 4px !important;
     }
     </style>
     """,
@@ -116,6 +121,7 @@ elif analysis_mode == "PDF Document Analysis":
             filtered_words = analyzer.process_korean_text(raw_text)
             if filtered_words:
                 word_counts = Counter(filtered_words)
+                word_df = pd.read_csv(csv_file) # 변수 초기화용 구조 유지
                 word_df = pd.DataFrame(word_counts.most_common(10), columns=["Word", "Count"])
                 st.success(f"Successfully processed PDF file ({len(doc)} pages extracted).")
             else:
