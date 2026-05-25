@@ -5,6 +5,7 @@ import pandas as pd
 import os
 import platform
 
+# 순수 파이썬 기반 Kiwi 형태소 분석기 전역 인스턴스
 _kiwi_instance = None
 
 def get_kiwi():
@@ -14,20 +15,39 @@ def get_kiwi():
     return _kiwi_instance
 
 def process_korean_text(text):
+    """
+    입력된 텍스트에서 한글 명사만 정밀하게 추출하고 불용어를 제거하는 함수
+    """
     if not text or not isinstance(text, str):
         return []
     
     kiwi = get_kiwi()
+    
+    # 특수문자 정제
     clean_text = re.sub(r'[^가-힣a-zA-Z0-9\s]', '', text)
+    
+    # Kiwi 토큰화 진행
     tokens = kiwi.tokenize(clean_text)
+    
+    # NNG(일반명사), NNP(고유명사)만 명확하게 추출 (조사 '를', '의' 등 원천 차단)
     nouns = [t.form for t in tokens if t.tag in ['NNG', 'NNP']]
     
-    stop_words = ['그것', '이것', '저것', '때문', '위해', '대한', '통해', '관한']
+    # 교회 주보 및 텍스트 데이터 분석용 맞춤형 불용어 사전 세분화
+    stop_words = [
+        '그것', '이것', '저것', '때문', '위해', '대한', '통해', '관한',
+        '다함께', '우리', '우리의', '무리를', '함께', '모든', '통하여', 
+        '대하여', '있습니다', '아래', '이상', '이하', '내용', '구분'
+    ]
+    
+    # 2글자 이상이면서 불용어 사전에 포함되지 않은 단어만 필터링
     filtered_nouns = [word for word in nouns if len(word) > 1 and word not in stop_words]
     
     return filtered_nouns
 
 def process_dataframe_mining(df):
+    """
+    데이터프레임 기반 텍스트 데이터 파싱 함수
+    """
     if 'Abstract' in df.columns:
         all_text = " ".join(df['Abstract'].fillna("").astype(str).tolist())
     elif 'title' in df.columns:
@@ -46,14 +66,31 @@ def process_dataframe_mining(df):
         return pd.DataFrame(columns=["Word", "Count"]), []
 
 def generate_wordcloud_obj(text_list, font_path=None):
+    """
+    Streamlit Cloud(Linux) 환경에서 한글 깨짐 네모 현상을 완벽하게 해결하는 폰트 매핑 함수
+    """
     if not font_path:
-        if platform.system() == "Windows":
+        sys_plat = platform.system()
+        if sys_plat == "Windows":
             font_path = "C:\\Windows\\Fonts\\malgun.ttf"
-        elif platform.system() == "Darwin":
+        elif sys_plat == "Darwin":
             font_path = "/System/Library/Fonts/Supplemental/AppleGothic.ttf"
-        elif platform.system() == "Linux":
-            font_path = "/usr/share/fonts/truetype/nanum/NanumGothic.ttf"
-            
+        elif sys_plat == "Linux":
+            # 데비안/우분투 계열 리눅스의 다양한 나눔폰트 경로 배열 탐색
+            linux_fonts = [
+                "/usr/share/fonts/truetype/nanum/NanumGothic.ttf",
+                "/usr/share/fonts/truetype/nanum/NanumMyeongjo.ttf",
+                "/usr/share/fonts/truetype/nanum/NanumSquareR.ttf",
+                "/usr/share/fonts/fonts-nanum/NanumGothic.ttf"
+            ]
+            for path in linux_fonts:
+                if os.path.exists(path):
+                    font_path = path
+                    break
+            else:
+                font_path = None
+                
+    # fallback 폰트 처리 (Windows 기본 폰트 대비)
     if font_path and not os.path.exists(font_path):
         if platform.system() == "Windows":
             font_path = "C:\\Windows\\Fonts\\gulim.ttc"
@@ -62,6 +99,7 @@ def generate_wordcloud_obj(text_list, font_path=None):
 
     text_content = " ".join(text_list)
     
+    # 한글 전용 워드클라우드 객체 선언
     wc = WordCloud(
         font_path=font_path,
         width=800,
