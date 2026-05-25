@@ -1,41 +1,36 @@
 import re
-from konlpy.tag import Okt
+from kiwipiepy import Kiwi
 from wordcloud import WordCloud
 import pandas as pd
 import os
 import platform
 
-# JVM 중복 로딩 및 메모리 누수 차단을 위한 전역 객체 선언
-_okt_instance = None
+# JVM이 필요 없는 순수 파이썬 기반 Kiwi 형태소 분석기 전역 초기화
+_kiwi_instance = None
 
-def get_okt():
-    """
-    Okt 객체를 단 한 번만 생성하여 메모리 충돌을 방지하는 함수
-    """
-    global _okt_instance
-    if _okt_instance is None:
-        try:
-            _okt_instance = Okt()
-        except Exception as e:
-            # 자바 연결 예외 발생 시 디버깅을 위해 콘솔 출력 후 빈 객체 처리 대비
-            print(f"KoNLPy JVM Initialization Logic Log: {e}")
-            _okt_instance = Okt()
-    return _okt_instance
+def get_kiwi():
+    global _kiwi_instance
+    if _kiwi_instance is None:
+        _kiwi_instance = Kiwi()
+    return _kiwi_instance
 
 def process_korean_text(text):
     """
-    입력된 텍스트에서 한글 형태소 분석을 통해 명사만 추출하는 함수
+    입력된 텍스트에서 한글 명사만 안전하게 추출하는 함수 (자바 미사용)
     """
     if not text or not isinstance(text, str):
         return []
     
-    okt = get_okt()
+    kiwi = get_kiwi()
     
-    # 특수문자 제거 및 한글, 영문, 숫자 구조 유지
+    # 특수문자 제거 및 텍스트 정형화
     clean_text = re.sub(r'[^가-힣a-zA-Z0-9\s]', '', text)
-    nouns = okt.nouns(clean_text)
     
-    # 의미 없는 단어 및 단음절 단어 필터링 (2글자 이상만 유지)
+    # 명사(NNG: 일반명사, NNP: 고유명사)만 필터링
+    tokens = kiwi.tokenize(clean_text)
+    nouns = [t.form for t in tokens if t.tag in ['NNG', 'NNP']]
+    
+    # 불용어 정의 및 단음절 필터링
     stop_words = ['그것', '이것', '저것', '때문', '위해', '대한', '통해', '관한']
     filtered_nouns = [word for word in nouns if len(word) > 1 and word not in stop_words]
     
@@ -43,7 +38,7 @@ def process_korean_text(text):
 
 def process_dataframe_mining(df):
     """
-    arXiv 등 데이터프레임 기반 텍스트 데이터 파싱 함수
+    데이터프레임 기반 텍스트 데이터 파싱 함수
     """
     if 'Abstract' in df.columns:
         all_text = " ".join(df['Abstract'].fillna("").astype(str).tolist())
@@ -64,7 +59,7 @@ def process_dataframe_mining(df):
 
 def generate_wordcloud_obj(text_list, font_path=None):
     """
-    한글 깨짐 현상을 근본적으로 해결하기 위해 폰트 경로를 완벽하게 바인딩하는 함수
+    한글 깨짐 현상을 해결하기 위해 배포 환경별 폰트 경로를 매핑하는 함수
     """
     if not font_path:
         if platform.system() == "Windows":
