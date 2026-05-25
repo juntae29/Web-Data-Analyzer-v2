@@ -2,11 +2,11 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
-import fitz  # PyMuPDF (PDF 파일 분석용)
+import fitz  # PyMuPDF
 import platform
 from collections import Counter
 
-# 외부 모듈 연동 (동일 폴더 내의 scraper.py 및 analyzer.py)
+# 외부 모듈 연동
 from scraper import run_web_scraper
 import analyzer
 
@@ -21,7 +21,6 @@ if platform.system() == "Windows":
 elif platform.system() == "Darwin":
     font_name = "/System/Library/Fonts/Supplemental/AppleGothic.ttf"
 elif platform.system() == "Linux":
-    # 데비안/우분투 계열 리눅스의 다양한 나눔폰트 경로 순차적 탐색
     linux_fonts = [
         "/usr/share/fonts/truetype/nanum/NanumGothic.ttf",
         "/usr/share/fonts/truetype/nanum/NanumMyeongjo.ttf",
@@ -44,8 +43,12 @@ st.title("🌐 Multi-Source Text Data Mining Analyzer")
 st.markdown("This system executes advanced text mining analytics from academic web sources, PDF documents, and custom inputs.")
 
 # ----------------------------------------------------------------
-# 위젯 지침 및 텍스트 영역 스타일 제어 CSS Layer
+# 세션 상태 및 인프라 보호용 트리거 초기화
 # ----------------------------------------------------------------
+if "scraping_done" not in st.session_state:
+    st.session_state.scraping_done = False
+
+# 위젯 지침 및 텍스트 영역 스타일 제어 CSS Layer
 st.markdown(
     """
     <style>
@@ -90,7 +93,7 @@ filtered_words = None
 csv_file = "scraped_data.csv"
 show_raw_df = False
 
-# [모드 1] arXiv 웹 크롤러 엔진 작동 모드
+# [모드 1] arXiv 웹 크롤러 엔진 작동 모드 (세션 보호 레이어 적용)
 if analysis_mode == "arXiv Web Scraping":
     st.sidebar.subheader("Scraping Parameters")
     search_topic = st.sidebar.text_input("Enter Research Keyword", value="Artificial Intelligence")
@@ -102,14 +105,17 @@ if analysis_mode == "arXiv Web Scraping":
             success = run_web_scraper(search_query=search_topic, num_papers=paper_count)
             if success:
                 st.sidebar.success("Data extraction completed and saved to CSV!")
+                st.session_state.scraping_done = True
                 st.rerun()
             else:
                 st.sidebar.error("Extraction process failed. Please check connection.")
 
-    if os.path.exists(csv_file):
+    # 전역 공간 무한 로딩 차단: 사용자가 버튼을 눌렀거나, 세션 스테이트가 활성화되었을 때만 마이닝 연산 작동
+    if st.session_state.scraping_done and os.path.exists(csv_file):
         df = pd.read_csv(csv_file)
         st.subheader(f"📋 Dataset Overview (Total Records Fetched: {len(df)})")
-        word_df, filtered_words = analyzer.process_dataframe_mining(df)
+        with st.spinner("Running text mining algorithms..."):
+            word_df, filtered_words = analyzer.process_dataframe_mining(df)
         show_raw_df = True
     else:
         st.info("Please trigger the scraping engine from the sidebar panel to render the analytical dashboards.")
