@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 import fitz  # PyMuPDF (PDF 파일 분석용)
+import platform
 from collections import Counter
 
 # 외부 모듈 연동 (동일 폴더 내의 scraper.py 및 analyzer.py)
@@ -10,14 +11,32 @@ from scraper import run_web_scraper
 import analyzer
 
 # ----------------------------------------------------------------
-# 1. 웹 페이지 기본 레이아웃 및 제목 설정
+# [폰트 해결] 시스템 환경별 맑은 고딕 / 애플고딕 폰트 절대 경로 재설정
+# ----------------------------------------------------------------
+font_name = None
+if platform.system() == "Windows":
+    # 윈도우 시스템 표준 한글 폰트 경로 지정
+    font_name = "C:\\Windows\\Fonts\\malgun.ttf"
+    # 만약 해당 경로에 파일이 존재하지 않는 경우를 대비한 2차 검증
+    if not os.path.exists(font_name):
+        font_name = "C:\\Windows\\Fonts\\gulim.ttc"
+elif platform.system() == "Darwin":
+    # 맥 OS 표준 한글 폰트 경로 지정
+    font_name = "/System/Library/Fonts/Supplemental/AppleGothic.ttf"
+
+# 물리 파일 존재 여부를 최종 확인 후, 없으면 시스템 로그에 남김
+if font_name and not os.path.exists(font_name):
+    font_name = None
+
+# ----------------------------------------------------------------
+# 웹 페이지 기본 레이아웃 및 제목 설정
 # ----------------------------------------------------------------
 st.set_page_config(page_title="Web Data Scraping & Analysis System", layout="wide")
 st.title("🌐 Multi-Source Text Data Mining Analyzer")
 st.markdown("This system executes advanced text mining analytics from academic web sources, PDF documents, and custom inputs.")
 
 # ----------------------------------------------------------------
-# [UI 최종 해결] 전역 위젯 및 하단 단축키 문구 초강력 시인성 강화 CSS
+# 위젯 지침 및 텍스트 영역 스타일 제어 CSS Layer
 # ----------------------------------------------------------------
 st.markdown(
     """
@@ -29,7 +48,7 @@ st.markdown(
         line-height: 1.6 !important;
     }
     
-    /* 입력 상자 내부의 플레이스홀더(안내 문구) 글자 크기 및 선명도 강화 */
+    /* 입력 상자 내부의 플레이스홀더 글자 크기 및 선명도 강화 */
     .stTextArea textarea::placeholder {
         font-size: 16px !important;
         color: #444444 !important;
@@ -37,16 +56,15 @@ st.markdown(
         opacity: 1 !important;
     }
     
-    /* [완벽 해결] 오른쪽 아래 'Press Ctrl+Enter to apply' 안내문구 크기 및 색상 강제 지정 */
-    /* 클래스 노드를 전역적으로 탐색하여 투명도를 없애고 순수 검은색 볼드로 출력함 */
+    /* 오른쪽 아래 'Press Ctrl+Enter to apply' 안내문구 크기 및 색상 전역 고정 */
     div[data-testid="stWidgetInstructions"], 
     div[data-testid="stWidgetInstructions"] span, 
     div[data-testid="stWidgetInstructions"] small,
     .stTextArea div legend + div {
-        font-size: 16px !important;        /* 글자 크기를 크게 변경 */
-        color: #000000 !important;        /* 완벽한 순수 검은색 전환 */
-        font-weight: 900 !important;        /* 가장 두꺼운 폰트 웨이트 부여 */
-        opacity: 1 !important;             /* 반투명 마스킹 해제 */
+        font-size: 16px !important;        
+        color: #000000 !important;        
+        font-weight: 900 !important;        
+        opacity: 1 !important;             
     }
     </style>
     """,
@@ -56,7 +74,7 @@ st.markdown(
 st.markdown("---")
 
 # ----------------------------------------------------------------
-# 2. 사이드바 글로벌 컨트롤 패널 구성 (3가지 분석 모드)
+# 사이드바 글로벌 컨트롤 패널 구성 (3가지 분석 모드)
 # ----------------------------------------------------------------
 st.sidebar.header("⚙️ Global Control Panel")
 analysis_mode = st.sidebar.selectbox(
@@ -64,7 +82,6 @@ analysis_mode = st.sidebar.selectbox(
     ["arXiv Web Scraping", "PDF Document Analysis", "Direct Text Input"]
 )
 
-# 데이터 처리를 위한 공통 타겟 변수 초기화
 word_df = None
 filtered_words = None
 csv_file = "scraped_data.csv"
@@ -133,7 +150,7 @@ elif analysis_mode == "Direct Text Input":
                 st.error(f"Java Engine (KoNLPy) JVM Connection Required. Details: {e}")
 
 # ----------------------------------------------------------------
-# 3. 공통 대시보드 시각화 레이아웃 레이어 (데이터가 준비되었을 때만 출력)
+# 공통 대시보드 시각화 레이아웃 레이어
 # ----------------------------------------------------------------
 if word_df is not None and not word_df.empty:
     col1, col2 = st.columns(2)
@@ -146,8 +163,8 @@ if word_df is not None and not word_df.empty:
         st.subheader("📝 Textual Analysis Word Cloud")
         if filtered_words:
             try:
-                # OSError 발생을 방지하기 위해 font_path 설정을 과감히 생략하고 내장 폰트 엔진 활용
-                wordcloud = analyzer.generate_wordcloud_obj(filtered_words, font_path=None)
+                # 확인된 font_name 물리 경로를 넘겨주어 네모 깨짐 현상을 근본적으로 차단함
+                wordcloud = analyzer.generate_wordcloud_obj(filtered_words, font_path=font_name)
                 fig, ax = plt.subplots(figsize=(10, 6))
                 ax.imshow(wordcloud, interpolation="bilinear")
                 ax.axis("off")
