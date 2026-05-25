@@ -28,6 +28,7 @@ def run_web_scraper(search_query="Artificial Intelligence", num_papers=30):
         date_el = article.find("p", class_="is-submitted-by")
         
         if title_el and summary_el:
+            # 공백문자 정제
             title = re.sub(r'\s+', ' ', title_el.text.strip())
             summary = re.sub(r'\s+', ' ', summary_el.text.replace("Abstract:", "").strip())
             
@@ -35,13 +36,18 @@ def run_web_scraper(search_query="Artificial Intelligence", num_papers=30):
             year_match = re.search(r'(19|20)\d{2}', date_text)
             year = year_match.group() if year_match else "2026"
             
+            # app.py 마이닝 파서 엔진과의 컬럼 매핑 일치 처리 (title, Abstract)
             extracted_records.append({
-                "Title": title,
-                "Summary": summary,
+                "title": title,
+                "Abstract": summary,
                 "Year": year
             })
         time.sleep(0.1)
         
+    if not extracted_records:
+        print("파싱된 데이터 기록이 존재하지 않는다.")
+        return False
+
     df = pd.DataFrame(extracted_records)
     output_filename = "scraped_data.csv"
     df.to_csv(output_filename, index=False, encoding="utf-8-sig")
