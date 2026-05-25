@@ -5,6 +5,18 @@ import pandas as pd
 import os
 import platform
 
+# JVM 중복 로딩 및 메모리 누수 차단을 위한 전역 객체 선언
+_okt_instance = None
+
+def get_okt():
+    """
+    Okt 객체를 단 한 번만 생성하여 메모리 충돌을 방지하는 함수
+    """
+    global _okt_instance
+    if _okt_instance is None:
+        _okt_instance = Okt()
+    return _okt_instance
+
 def process_korean_text(text):
     """
     입력된 텍스트에서 한글 형태소 분석을 통해 명사만 추출하는 함수
@@ -12,7 +24,8 @@ def process_korean_text(text):
     if not text or not isinstance(text, str):
         return []
     
-    okt = Okt()
+    okt = get_okt()
+    
     # 특수문자 제거 및 한글, 영문, 숫자 구조 유지
     clean_text = re.sub(r'[^가-힣a-zA-Z0-9\s]', '', text)
     nouns = okt.nouns(clean_text)
@@ -46,26 +59,24 @@ def process_dataframe_mining(df):
 
 def generate_wordcloud_obj(text_list, font_path=None):
     """
-    [핵심 수정] 한글 깨짐 현상을 근본적으로 해결하기 위해 폰트 경로를 완벽하게 바인딩하는 함수
+    한글 깨짐 현상을 근본적으로 해결하기 위해 폰트 경로를 완벽하게 바인딩하는 함수
     """
-    # 1. 호출부에서 폰트 경로를 주지 않았거나 누락된 경우, OS별 표준 폰트 자동 추적
     if not font_path:
         if platform.system() == "Windows":
             font_path = "C:\\Windows\\Fonts\\malgun.ttf"
         elif platform.system() == "Darwin":
             font_path = "/System/Library/Fonts/Supplemental/AppleGothic.ttf"
+        elif platform.system() == "Linux":
+            font_path = "/usr/share/fonts/truetype/nanum/NanumGothic.ttf"
             
-    # 2. 지정된 폰트 파일이 실제로 존재하는지 최종 검증 (존재하지 않으면 굴림체로 우회)
     if font_path and not os.path.exists(font_path):
         if platform.system() == "Windows":
             font_path = "C:\\Windows\\Fonts\\gulim.ttc"
         else:
             font_path = None
 
-    # 리스트 형태의 형태소를 하나의 문자열 스페이스 단위로 결합
     text_content = " ".join(text_list)
     
-    # 3. WordCloud 객체 생성 시 font_path를 강제로 주입하여 한글 매핑 완료
     wc = WordCloud(
         font_path=font_path,
         width=800,
