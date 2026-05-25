@@ -6,12 +6,27 @@ import fitz  # PyMuPDF (PDF 파일 분석용)
 import platform
 from collections import Counter
 
+# ----------------------------------------------------------------
+# [중요] Streamlit Cloud (Linux) 환경 자바 경로(JVM) 강제 바인딩 방어 로직
+# ----------------------------------------------------------------
+if platform.system() == "Linux":
+    # 전형적인 Ubuntu/Debian JDK 17 및 11 표준 설치 경로 추적
+    possible_jvm_paths = [
+        "/usr/lib/jvm/java-17-openjdk-amd64",
+        "/usr/lib/jvm/java-11-openjdk-amd64",
+        "/usr/lib/jvm/default-java"
+    ]
+    for path in possible_jvm_paths:
+        if os.path.exists(path):
+            os.environ["JAVA_HOME"] = path
+            break
+
 # 외부 모듈 연동 (동일 폴더 내의 scraper.py 및 analyzer.py)
 from scraper import run_web_scraper
 import analyzer
 
 # ----------------------------------------------------------------
-# 1. 시스템 환경별 맑은 고딕 / 애플고딕 폰트 절대 경로 설정
+# [폰트 해결] 클라우드 리눅스 서버 환경 반영 표준 폰트 설정
 # ----------------------------------------------------------------
 font_name = None
 if platform.system() == "Windows":
@@ -20,12 +35,15 @@ if platform.system() == "Windows":
         font_name = "C:\\Windows\\Fonts\\gulim.ttc"
 elif platform.system() == "Darwin":
     font_name = "/System/Library/Fonts/Supplemental/AppleGothic.ttf"
+elif platform.system() == "Linux":
+    # packages.txt의 fonts-nanum 패키지를 통해 설치되는 실제 경로 지정
+    font_name = "/usr/share/fonts/truetype/nanum/NanumGothic.ttf"
 
 if font_name and not os.path.exists(font_name):
     font_name = None
 
 # ----------------------------------------------------------------
-# 2. 웹 페이지 기본 레이아웃 및 제목 설정
+# 웹 페이지 기본 레이아웃 및 제목 설정
 # ----------------------------------------------------------------
 st.set_page_config(page_title="Web Data Scraping & Analysis System", layout="wide")
 st.title("🌐 Multi-Source Text Data Mining Analyzer")
@@ -37,22 +55,17 @@ st.markdown("This system executes advanced text mining analytics from academic w
 st.markdown(
     """
     <style>
-    /* 입력 상자 안에 실제 작성되는 글자 크기 및 색상 조정 */
     .stTextArea textarea {
         font-size: 18px !important;
         color: #111111 !important;
         line-height: 1.6 !important;
     }
-    
-    /* 입력 상자 내부의 플레이스홀더 글자 크기 및 선명도 강화 */
     .stTextArea textarea::placeholder {
         font-size: 16px !important;
         color: #444444 !important;
         font-weight: 500 !important;
         opacity: 1 !important;
     }
-    
-    /* 오른쪽 아래 'Press Ctrl+Enter to apply' 안내문구 크기 및 색상 전역 고정 */
     div[data-testid="stWidgetInstructions"], 
     div[data-testid="stWidgetInstructions"] span, 
     div[data-testid="stWidgetInstructions"] small,
@@ -70,7 +83,7 @@ st.markdown(
 st.markdown("---")
 
 # ----------------------------------------------------------------
-# 3. 사이드바 글로벌 컨트롤 패널 구성 (3가지 분석 모드)
+# 사이드바 글로벌 컨트롤 패널 구성
 # ----------------------------------------------------------------
 st.sidebar.header("⚙️ Global Control Panel")
 analysis_mode = st.sidebar.selectbox(
@@ -146,7 +159,7 @@ elif analysis_mode == "Direct Text Input":
                 st.error(f"Java Engine (KoNLPy) JVM Connection Required. Details: {e}")
 
 # ----------------------------------------------------------------
-# 4. 공통 대시보드 시각화 레이아웃 레이어
+# 공통 대시보드 시각화 레이아웃 레이어
 # ----------------------------------------------------------------
 if word_df is not None and not word_df.empty:
     col1, col2 = st.columns(2)
@@ -159,7 +172,6 @@ if word_df is not None and not word_df.empty:
         st.subheader("📝 Textual Analysis Word Cloud")
         if filtered_words:
             try:
-                # 보완된 analyzer 모듈로 안전하게 폰트 경로를 주입함
                 wordcloud = analyzer.generate_wordcloud_obj(filtered_words, font_path=font_name)
                 fig, ax = plt.subplots(figsize=(10, 6))
                 ax.imshow(wordcloud, interpolation="bilinear")
