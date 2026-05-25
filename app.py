@@ -11,25 +11,21 @@ from scraper import run_web_scraper
 import analyzer
 
 # ----------------------------------------------------------------
-# [폰트 해결] 시스템 환경별 맑은 고딕 / 애플고딕 폰트 절대 경로 재설정
+# 1. 시스템 환경별 맑은 고딕 / 애플고딕 폰트 절대 경로 설정
 # ----------------------------------------------------------------
 font_name = None
 if platform.system() == "Windows":
-    # 윈도우 시스템 표준 한글 폰트 경로 지정
     font_name = "C:\\Windows\\Fonts\\malgun.ttf"
-    # 만약 해당 경로에 파일이 존재하지 않는 경우를 대비한 2차 검증
     if not os.path.exists(font_name):
         font_name = "C:\\Windows\\Fonts\\gulim.ttc"
 elif platform.system() == "Darwin":
-    # 맥 OS 표준 한글 폰트 경로 지정
     font_name = "/System/Library/Fonts/Supplemental/AppleGothic.ttf"
 
-# 물리 파일 존재 여부를 최종 확인 후, 없으면 시스템 로그에 남김
 if font_name and not os.path.exists(font_name):
     font_name = None
 
 # ----------------------------------------------------------------
-# 웹 페이지 기본 레이아웃 및 제목 설정
+# 2. 웹 페이지 기본 레이아웃 및 제목 설정
 # ----------------------------------------------------------------
 st.set_page_config(page_title="Web Data Scraping & Analysis System", layout="wide")
 st.title("🌐 Multi-Source Text Data Mining Analyzer")
@@ -74,7 +70,7 @@ st.markdown(
 st.markdown("---")
 
 # ----------------------------------------------------------------
-# 사이드바 글로벌 컨트롤 패널 구성 (3가지 분석 모드)
+# 3. 사이드바 글로벌 컨트롤 패널 구성 (3가지 분석 모드)
 # ----------------------------------------------------------------
 st.sidebar.header("⚙️ Global Control Panel")
 analysis_mode = st.sidebar.selectbox(
@@ -150,7 +146,7 @@ elif analysis_mode == "Direct Text Input":
                 st.error(f"Java Engine (KoNLPy) JVM Connection Required. Details: {e}")
 
 # ----------------------------------------------------------------
-# 공통 대시보드 시각화 레이아웃 레이어
+# 4. 공통 대시보드 시각화 레이아웃 레이어
 # ----------------------------------------------------------------
 if word_df is not None and not word_df.empty:
     col1, col2 = st.columns(2)
@@ -163,7 +159,7 @@ if word_df is not None and not word_df.empty:
         st.subheader("📝 Textual Analysis Word Cloud")
         if filtered_words:
             try:
-                # 확인된 font_name 물리 경로를 넘겨주어 네모 깨짐 현상을 근본적으로 차단함
+                # 보완된 analyzer 모듈로 안전하게 폰트 경로를 주입함
                 wordcloud = analyzer.generate_wordcloud_obj(filtered_words, font_path=font_name)
                 fig, ax = plt.subplots(figsize=(10, 6))
                 ax.imshow(wordcloud, interpolation="bilinear")
