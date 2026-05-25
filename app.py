@@ -6,21 +6,6 @@ import fitz  # PyMuPDF (PDF 파일 분석용)
 import platform
 from collections import Counter
 
-# ----------------------------------------------------------------
-# [중요] Streamlit Cloud (Linux) 환경 자바 경로(JVM) 강제 바인딩 방어 로직
-# ----------------------------------------------------------------
-if platform.system() == "Linux":
-    # 전형적인 Ubuntu/Debian JDK 17 및 11 표준 설치 경로 추적
-    possible_jvm_paths = [
-        "/usr/lib/jvm/java-17-openjdk-amd64",
-        "/usr/lib/jvm/java-11-openjdk-amd64",
-        "/usr/lib/jvm/default-java"
-    ]
-    for path in possible_jvm_paths:
-        if os.path.exists(path):
-            os.environ["JAVA_HOME"] = path
-            break
-
 # 외부 모듈 연동 (동일 폴더 내의 scraper.py 및 analyzer.py)
 from scraper import run_web_scraper
 import analyzer
@@ -36,8 +21,17 @@ if platform.system() == "Windows":
 elif platform.system() == "Darwin":
     font_name = "/System/Library/Fonts/Supplemental/AppleGothic.ttf"
 elif platform.system() == "Linux":
-    # packages.txt의 fonts-nanum 패키지를 통해 설치되는 실제 경로 지정
-    font_name = "/usr/share/fonts/truetype/nanum/NanumGothic.ttf"
+    # 데비안/우분투 계열 리눅스의 다양한 나눔폰트 경로 순차적 탐색
+    linux_fonts = [
+        "/usr/share/fonts/truetype/nanum/NanumGothic.ttf",
+        "/usr/share/fonts/truetype/nanum/NanumMyeongjo.ttf",
+        "/usr/share/fonts/truetype/nanum/NanumSquareR.ttf",
+        "/usr/share/fonts/fonts-nanum/NanumGothic.ttf"
+    ]
+    for path in linux_fonts:
+        if os.path.exists(path):
+            font_name = path
+            break
 
 if font_name and not os.path.exists(font_name):
     font_name = None
@@ -156,7 +150,7 @@ elif analysis_mode == "Direct Text Input":
                 else:
                     st.warning("No significant dynamic nouns found in the text container.")
             except Exception as e:
-                st.error(f"Java Engine (KoNLPy) JVM Connection Required. Details: {e}")
+                st.error(f"Analysis Processing Error. Details: {e}")
 
 # ----------------------------------------------------------------
 # 공통 대시보드 시각화 레이아웃 레이어
