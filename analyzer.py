@@ -14,7 +14,12 @@ def get_okt():
     """
     global _okt_instance
     if _okt_instance is None:
-        _okt_instance = Okt()
+        try:
+            _okt_instance = Okt()
+        except Exception as e:
+            # 자바 연결 예외 발생 시 디버깅을 위해 콘솔 출력 후 빈 객체 처리 대비
+            print(f"KoNLPy JVM Initialization Logic Log: {e}")
+            _okt_instance = Okt()
     return _okt_instance
 
 def process_korean_text(text):
